@@ -14,9 +14,19 @@ namespace UELib.Core
             ShouldDeserializeOnDemand = true;
         }
 
+        /// <summary>
+        ///     False when a subclass serializes its own bounds in place of BoundingBox and BoundingSphere.
+        /// </summary>
+        protected virtual bool HasPrimitiveBounds => true;
+
         protected override void Deserialize()
         {
             base.Deserialize();
+
+            if (!HasPrimitiveBounds)
+            {
+                return;
+            }
 
             _Buffer.ReadStruct(out BoundingBox);
             Record(nameof(BoundingBox), BoundingBox);

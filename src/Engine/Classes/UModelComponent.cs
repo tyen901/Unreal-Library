@@ -1,4 +1,4 @@
-﻿using UELib.Branch;
+using UELib.Branch;
 using UELib.Core;
 
 namespace UELib.Engine
@@ -12,6 +12,9 @@ namespace UELib.Engine
     {
         public UObject Model;
         public int ZoneIndex;
+        public UArray<ModelElement>? Elements;
+        public ushort ComponentIndex;
+        public UArray<ushort>? Nodes;
         
         protected override void Deserialize()
         {
@@ -23,7 +26,19 @@ namespace UELib.Engine
             _Buffer.Read(out ZoneIndex);
             Record(nameof(ZoneIndex), ZoneIndex);
             
-            // TODO: Elements (structure not implemented), ComponentIndex, Nodes
+#if MIRRORSEDGE
+            if (Package.Build == UnrealPackage.GameBuild.BuildName.MirrorsEdge)
+            {
+                _Buffer.Read(out Elements);
+                Record(nameof(Elements), Elements);
+
+                _Buffer.Read(out ComponentIndex);
+                Record(nameof(ComponentIndex), ComponentIndex);
+
+                _Buffer.Read(out Nodes);
+                Record(nameof(Nodes), Nodes);
+            }
+#endif
         }
     }
 }
