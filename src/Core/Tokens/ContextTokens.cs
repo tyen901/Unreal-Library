@@ -165,7 +165,7 @@ namespace UELib.Core
                         Decompiler.PreComment = $"Struct:{Struct.GetOuterGroup()}";
                     }
 #endif
-                    return $"{DecompileNext()}.{Property.Name}";
+                    return $"({DecompileNext()}).{Property.Name}";
                 }
             }
         }

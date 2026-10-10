@@ -736,7 +736,7 @@ namespace UELib.Core
 
                 public override string Decompile()
                 {
-                    return DecompileNext();
+                    return $"({DecompileNext()})";
                 }
             }
 
