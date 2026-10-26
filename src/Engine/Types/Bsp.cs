@@ -8,7 +8,7 @@ namespace UELib.Engine
     ///     Implements FBspNode as bulk-serialized by Mirror's Edge (536/43), 64 bytes.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct BspNode
+    public struct BspNode : IUnrealDeserializableClass
     {
         public float PlaneX, PlaneY, PlaneZ, PlaneW;
         public int iVertPool;
@@ -25,6 +25,16 @@ namespace UELib.Engine
         public byte NumVertices;
         public byte NodeFlags;
         public int iLeaf0, iLeaf1;
+
+        public void Deserialize(IUnrealStream stream)
+        {
+            stream.Read(out PlaneX); stream.Read(out PlaneY); stream.Read(out PlaneZ); stream.Read(out PlaneW);
+            stream.Read(out iVertPool); stream.Read(out iSurf); stream.Read(out iVertexIndex);
+            stream.Read(out ComponentIndex); stream.Read(out ComponentNodeIndex); stream.Read(out ComponentElementIndex);
+            stream.Read(out iBack); stream.Read(out iFront); stream.Read(out iPlane); stream.Read(out iCollisionBound);
+            stream.Read(out iZone0); stream.Read(out iZone1); stream.Read(out NumVertices); stream.Read(out NodeFlags);
+            stream.Read(out iLeaf0); stream.Read(out iLeaf1);
+        }
     }
 
     /// <summary>
@@ -43,23 +53,34 @@ namespace UELib.Engine
     ///     Implements FModelVertex, 36 bytes.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct ModelVertex
+    public struct ModelVertex : IUnrealDeserializableClass
     {
         public UVector Position;
         public uint TangentX;
         public uint TangentZ;
         public UVector2D TexCoord;
         public UVector2D ShadowTexCoord;
+
+        public void Deserialize(IUnrealStream stream)
+        {
+            stream.ReadStruct(out Position); stream.Read(out TangentX); stream.Read(out TangentZ);
+            stream.ReadStruct(out TexCoord); stream.ReadStruct(out ShadowTexCoord);
+        }
     }
 
     /// <summary>
     ///     Implements FMeshEdge, 16 bytes.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct MeshEdge
+    public struct MeshEdge : IUnrealDeserializableClass
     {
         public int Vertex0, Vertex1;
         public int Face0, Face1;
+
+        public void Deserialize(IUnrealStream stream)
+        {
+            stream.Read(out Vertex0); stream.Read(out Vertex1); stream.Read(out Face0); stream.Read(out Face1);
+        }
     }
 
     /// <summary>
@@ -133,17 +154,36 @@ namespace UELib.Engine
         {
             stream.Read(out int elementSize);
             int count = stream.ReadLength();
-            if (elementSize != sizeof(T) && count > 0)
-            {
-                throw new NotSupportedException(
-                    $"Bulk element size {elementSize} does not match {typeof(T).Name} ({sizeof(T)})");
-            }
+            bool consoleVert = typeof(T) == typeof(BspVert) && elementSize == 16;
+            if (count < 0 || (count > 0 && elementSize != sizeof(T) && !consoleVert))
+                throw new NotSupportedException($"Bulk element size {elementSize} does not match {typeof(T).Name} ({sizeof(T)})");
 
-            var bytes = new byte[count * sizeof(T)];
-            stream.UR.Read(bytes, 0, bytes.Length);
             var items = new T[count];
-            MemoryMarshal.Cast<byte, T>(bytes).CopyTo(items);
+            for (int i = 0; i < count; i++)
+            {
+                long start = stream.Position;
+                object value;
+                if (typeof(T) == typeof(int)) { stream.Read(out int x); value = x; }
+                else if (typeof(T) == typeof(float)) { stream.Read(out float x); value = x; }
+                else if (typeof(T) == typeof(ushort)) { stream.Read(out ushort x); value = x; }
+                else if (typeof(T) == typeof(UVector)) { stream.ReadStruct(out UVector x); value = x; }
+                else if (typeof(T) == typeof(BspNode)) { stream.ReadStruct(out BspNode x); value = x; }
+                else if (typeof(T) == typeof(MeshEdge)) { stream.ReadStruct(out MeshEdge x); value = x; }
+                else if (typeof(T) == typeof(ModelVertex)) { stream.ReadStruct(out ModelVertex x); value = x; }
+                else if (typeof(T) == typeof(BspVert))
+                {
+                    var x = new BspVert();
+                    stream.Read(out x.pVertex); stream.Read(out x.iSide); stream.ReadStruct(out x.ShadowTexCoord);
+                    if (!consoleVert) stream.ReadStruct(out x.BackfaceShadowTexCoord);
+                    value = x;
+                }
+                else throw new NotSupportedException("Unsupported bulk element: " + typeof(T).Name);
+                if (stream.Position - start != elementSize)
+                    throw new InvalidOperationException($"{typeof(T).Name} consumed {stream.Position - start} bytes, expected {elementSize}");
+                items[i] = (T)value;
+            }
             return items;
         }
+
     }
 }

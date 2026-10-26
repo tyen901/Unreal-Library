@@ -59,6 +59,9 @@ namespace UELib.Core
             Points = BulkArray.Read<UVector>(_Buffer);
             Record(nameof(Points), Points.Length);
             Nodes = BulkArray.Read<BspNode>(_Buffer);
+            // UModel::Serialize clears the transient editor flags after bulk loading.
+            for (int i = 0; i < Nodes.Length; i++)
+                Nodes[i].NodeFlags &= 0x1f;
             Record(nameof(Nodes), Nodes.Length);
 
             // TTransArray: the owner precedes the elements.

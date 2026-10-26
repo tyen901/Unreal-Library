@@ -584,8 +584,9 @@ namespace UELib
                 [Build(512, 0)] UT3,
 
                 /// <summary>
-                /// 536/043
+                /// 536/041 (Xbox 360), 536/043 (PC)
                 /// </summary>
+                [Build(536, 41)]
                 [Build(536, 43)] MirrorsEdge,
 
                 /// <summary>
