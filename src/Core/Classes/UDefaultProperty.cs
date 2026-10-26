@@ -402,7 +402,10 @@ namespace UELib.Core
 
             Size = _Buffer.ReadInt32();
             Record(nameof(Size), Size);
-            Debug.Assert(Size >= 0);
+            if (Size < 0)
+            {
+                throw new DeserializationException($"Negative size {Size} for property tag '{Name}'");
+            }
 
             ArrayIndex = _Buffer.ReadInt32();
             Record(nameof(ArrayIndex), ArrayIndex);

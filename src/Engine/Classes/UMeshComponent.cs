@@ -1,4 +1,5 @@
-﻿using UELib.Branch;
+using UELib.Core;
+using UELib.Branch;
 
 namespace UELib.Engine
 {
@@ -27,6 +28,19 @@ namespace UELib.Engine
     [BuildGeneration(BuildGeneration.UE3)]
     public class UStaticMeshComponent : UMeshComponent
     {
+        public UArray<StaticMeshComponentLODInfo>? LODData;
+
+        protected override void Deserialize()
+        {
+            base.Deserialize();
+#if MIRRORSEDGE
+            if (Package.Build == UnrealPackage.GameBuild.BuildName.MirrorsEdge)
+            {
+                _Buffer.Read(out LODData);
+                Record(nameof(LODData), LODData);
+            }
+#endif
+        }
     }
 
     /// <summary>

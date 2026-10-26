@@ -106,10 +106,26 @@ namespace UELib.Core
                         : $"{operatorName}{operand}";
                 }
 
+                // Infix operators are left-associative: the right operand also needs
+                // parentheses at equal precedence. A short-circuit operator's right
+                // operand is wrapped in a SkipToken, so precedence is read from the
+                // expression the skip token contains.
+                private string OperandToken(Token t, byte parentPrecedence, bool right)
+                {
+                    var source = t is SkipToken ? Decompiler.PeekToken : t;
+                    byte childPrecedence = GetInfixOperPrecedence(source);
+                    if (childPrecedence == 0)
+                        return t.Decompile();
+                    return childPrecedence > parentPrecedence || (right && childPrecedence == parentPrecedence)
+                        ? $"({t.Decompile()})"
+                        : t.Decompile();
+                }
+
                 protected string DecompileOperator(string operatorName, byte operPrecedence = byte.MaxValue)
                 {
-                    var output =
-                        $"{PrecedenceToken(NextToken(), operPrecedence)} {operatorName} {PrecedenceToken(NextToken(), operPrecedence)}";
+                    string left = OperandToken(NextToken(), operPrecedence, false);
+                    string right = OperandToken(NextToken(), operPrecedence, true);
+                    var output = $"{left} {operatorName} {right}";
                     AssertSkipCurrentToken<EndFunctionParmsToken>();
                     return output;
                 }
