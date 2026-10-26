@@ -8,7 +8,7 @@ namespace UELib.Core
     public class UName : IComparable<UName>
     {
         private const string    None = "None";
-        public const int        Numeric = 0;
+        public const int        Numeric = -1;
 
         private UNameTableItem  _NameItem;
 
@@ -55,7 +55,7 @@ namespace UELib.Core
                 Index = index
             };
             _NameItem = nameEntry;
-            _Number = Numeric;
+            _Number = number;
         }
 
         public bool IsNone()
