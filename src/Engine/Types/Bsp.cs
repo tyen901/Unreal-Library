@@ -154,8 +154,12 @@ namespace UELib.Engine
         {
             stream.Read(out int elementSize);
             int count = stream.ReadLength();
-            bool consoleVert = typeof(T) == typeof(BspVert) && elementSize == 16;
-            if (count < 0 || (count > 0 && elementSize != sizeof(T) && !consoleVert))
+            // The compact FVert is the Xbox 360 Mirror's Edge layout, not
+            // an alternate PC layout. Never fabricate missing PC witness lanes.
+            bool consoleVert = typeof(T) == typeof(BspVert) && elementSize == 16
+                && stream.Version == 536 && stream.LicenseeVersion == 41 && stream.BigEndianCode
+                && stream.Package.Build == UnrealPackage.GameBuild.BuildName.MirrorsEdge;
+            if (count < 0 || (elementSize != sizeof(T) && !consoleVert))
                 throw new NotSupportedException($"Bulk element size {elementSize} does not match {typeof(T).Name} ({sizeof(T)})");
 
             var items = new T[count];

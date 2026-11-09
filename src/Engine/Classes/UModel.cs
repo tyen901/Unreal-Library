@@ -19,12 +19,17 @@ namespace UELib.Core
         public UVector[]? Vectors;
         public UVector[]? Points;
         public BspNode[]? Nodes;
+        // Serialized evidence, before UModel clears transient editor flags.
+        public byte[]? SerializedNodeFlags;
+        public int SurfsOwnerRef;
         public UArray<BspSurf>? Surfs;
         public BspVert[]? Verts;
         public int NumSharedSides;
         public ZoneProperties[]? Zones;
         public int[]? LeafHulls;
         public int[]? Leaves;
+        // Offset within the serialized UObject buffer, not the package file.
+        public long RootOutsideRelativeOffset = -1;
         public int RootOutside;
         public int Linked;
         public int[]? PortalNodes;
@@ -59,13 +64,17 @@ namespace UELib.Core
             Points = BulkArray.Read<UVector>(_Buffer);
             Record(nameof(Points), Points.Length);
             Nodes = BulkArray.Read<BspNode>(_Buffer);
+            SerializedNodeFlags = new byte[Nodes.Length];
             // UModel::Serialize clears the transient editor flags after bulk loading.
             for (int i = 0; i < Nodes.Length; i++)
+            {
+                SerializedNodeFlags[i] = Nodes[i].NodeFlags;
                 Nodes[i].NodeFlags &= 0x1f;
+            }
             Record(nameof(Nodes), Nodes.Length);
 
             // TTransArray: the owner precedes the elements.
-            _Buffer.ReadObject<UObject>();
+            SurfsOwnerRef = _Buffer.ReadIndex();
             _Buffer.ReadArray(out UArray<BspSurf> surfs);
             Surfs = surfs;
             Record(nameof(Surfs), Surfs.Count);
@@ -86,6 +95,7 @@ namespace UELib.Core
 
             LeafHulls = BulkArray.Read<int>(_Buffer);
             Leaves = BulkArray.Read<int>(_Buffer);
+            RootOutsideRelativeOffset = _Buffer.Position;
             _Buffer.Read(out RootOutside);
             _Buffer.Read(out Linked);
             PortalNodes = BulkArray.Read<int>(_Buffer);
